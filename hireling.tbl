@@ -5,7 +5,11 @@ sex
 2 {^men.lst}
 
 descriptor
+3
 1 {^descriptors.lst}
 
 sub_descriptor
+3
 1 the {^descriptors.lst}
+
+

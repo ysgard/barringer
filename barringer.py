@@ -9,6 +9,7 @@ import random
 import sys
 
 HIRELING_TABLE = "hireling.tbl"
+DEBUG = False
 
 
 class Row:
@@ -33,6 +34,8 @@ def read_table(table=HIRELING_TABLE):
         lead = f.readline().rstrip()
         tables = Tables()
         for line in f:
+            if DEBUG:
+                print("Parsing: {}".format(line))
             clean_line = line.rstrip()
             if clean_line == "":
                 cur_table = ""
@@ -41,8 +44,14 @@ def read_table(table=HIRELING_TABLE):
                 tables.tabledict[cur_table] = Table()
             else:
                 row = Row()
-                row.weight = int(clean_line[0:clean_line.find(' ')])
-                row.val = clean_line[clean_line.find(' ') + 1:len(clean_line)]
+                if clean_line.find(' ')  > -1:
+                    digit_end = clean_line.find(' ')
+                    row.val = clean_line[digit_end + 1:len(clean_line)]
+                    row.weight = int(clean_line[0:digit_end])
+                else:
+                    digit_end = clean_line.find('\n')
+                    row.val = ""
+                    row.weight = int(clean_line)
                 tables.tabledict[cur_table].rows.append(row)
     return (lead, tables)
 
@@ -127,7 +136,6 @@ def gen_hireling(table_file):
                 get_row(tables, command) + \
                 lead[end_bracket + 1:len(lead)]
     return lead
-
 
 if __name__ == "__main__":
     if len(sys.argv) < 1 or len(sys.argv) > 3:
