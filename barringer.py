@@ -46,6 +46,22 @@ def read_table(table=HIRELING_TABLE):
                 tables.tabledict[cur_table].rows.append(row)
     return (lead, tables)
 
+# Read a raw file of values - this is treated as a table whose name matches
+# the filename and whose values all have the same weight.
+# If the table already exists we don't do anything, just return
+def read_raw_table(tables, file_name):
+    if file_name in tables.tabledict:
+        return
+    tables.tabledict[file_name] = Table()
+    with open(file_name, 'r') as f:
+        for line in f:
+            cleaned = line.rstrip()
+            if cleaned != "":
+                row = Row()
+                row.weight = 1
+                row.val = cleaned
+                tables.tabledict[file_name].rows.append(row)
+
 
 # Get a weighted random row from a given table
 def get_row(tables, table_name):
@@ -60,22 +76,67 @@ def get_row(tables, table_name):
         if random_num <= current_weight:
             return i.val
 
+def gen_hirelings(table_file, count):
+    results = ""
+    for i in range(0, count):
+        results += gen_hireling(table_file) + "\n\n"
+    return results
 
-def gen_hireling(count=1):
+
+def gen_hireling(table_file):
     # Initialize RNG
     random.seed(random.SystemRandom().randint(1, 65000))
-    (lead, tables) = read_table()
+    (lead, tables) = read_table(table_file)
     vars = {}
     # Parse the lead, looking up the values in the tables
     while lead.find('{') > -1:
-        pass
-    print(lead)
+        begin_bracket = lead.find('{')
+        end_bracket = lead.find('}')
+        command = lead[begin_bracket + 1:end_bracket]
+        # handle variables
+        if command[0:1] == '%':
+            # Define a variable
+            if command.find('=') > -1:
+                varname = command[1:command.find('=')]
+                vars[varname] = int(command[command.find('=')+1:len(command)])
+                lead = lead[0:begin_bracket] + lead[end_bracket + 1:len(lead)]
+            # Handle adding or subtracting to a variable
+            elif command.find('+') > -1:
+                varname = lead[1:lead.find('+')]
+                vars[varname] += int(command[command.find('+') + 1:len(command)])
+                lead = lead[0:begin_bracket] + lead[end_bracket + 1:len(lead)]
+            # Insert the value of the variable
+            else:
+                lead = lead[0:begin_bracket] + \
+                    str(vars[command[1:len(command)]]) + \
+                    lead[end_bracket + 1:len(lead)]
+        # Handle newlines
+        elif command[0:2] == '\\n':
+            lead = lead[0:begin_bracket] + '\n' + \
+                lead[end_bracket + 1:len(lead)]
+        # Insert call to raw table
+        elif command.find('^') > -1:
+            # Throw away for now
+            read_raw_table(tables, command[1:len(command)])
+            lead = lead[0:begin_bracket] + \
+                get_row(tables, command[1:len(command)]) + \
+                lead[end_bracket + 1:len(lead)]
+        # Otherwise just insert the result of rolling on the given table
+        else:
+            lead = lead[0:begin_bracket] + \
+                get_row(tables, command) + \
+                lead[end_bracket + 1:len(lead)]
+    return lead
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 1 or len(sys.argv) > 2:
-        print("Usage: python {} [count]").format(sys.argv[0])
+    if len(sys.argv) < 1 or len(sys.argv) > 3:
+        print("Usage: python {} [count] [table_file]".format(sys.argv[0]))
+    count = 1
+    table_file = HIRELING_TABLE
     if len(sys.argv) > 1:
-        gen_hireling(sys.argv[1])
-    else:
-        gen_hireling()
+        count = int(sys.argv[1])
+    if len(sys.argv) > 2:
+        table_file = sys.argv[2]
+    result = gen_hirelings(table_file, count)
+    print(result)
