@@ -109,7 +109,6 @@ def roll_dice(dice_string):
     total = 0
     for dice in range(0, roll_number):
         roll = random.SystemRandom().randint(1, die)
-        print("Rolled {} on a d{}".format(roll, die))
         total += roll
     total += dice_mod
     return total
