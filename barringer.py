@@ -71,7 +71,6 @@ def read_raw_table(tables, file_name):
                 row.val = cleaned
                 tables.tabledict[file_name].rows.append(row)
 
-
 # Get a weighted random row from a given table
 def get_row(tables, table_name):
     t = tables.tabledict[table_name]
@@ -91,6 +90,30 @@ def gen_hirelings(table_file, count):
         results += gen_hireling(table_file) + "\n\n"
     return results
 
+def roll_dice(dice_string):
+    d_loc = dice_string.find('d')
+    roll_number = 1
+    dice_mod = 0
+    if d_loc > 0:
+        roll_number = int(dice_string[0:d_loc])
+    dmod_plus = dice_string.find('+')
+    dmod_minus = dice_string.find('-')
+    if dmod_plus > -1:
+        dice_mod = int(dice_string[dmod_plus + 1:len(dice_string)])
+        die = int(dice_string[d_loc + 1:dmod_plus])
+    elif dmod_minus > -1:
+        dice_mod = -1 * int(dice_string[dmod_minus + 1:len(dice_string)])
+        die = int(dice_string[d_loc + 1:dmod_minus])
+    else:
+        die = int(dice_string[d_loc + 1:len(dice_string)])
+    total = 0
+    for dice in range(0, roll_number):
+        roll = random.SystemRandom().randint(1, die)
+        print("Rolled {} on a d{}".format(roll, die))
+        total += roll
+    total += dice_mod
+    return total
+        
 
 def gen_hireling(table_file):
     # Initialize RNG
@@ -129,6 +152,12 @@ def gen_hireling(table_file):
             read_raw_table(tables, command[1:len(command)])
             lead = lead[0:begin_bracket] + \
                 get_row(tables, command[1:len(command)]) + \
+                lead[end_bracket + 1:len(lead)]
+        # Generate a random number using ndx syntax
+        elif command.find('#') > -1:
+            num = roll_dice(command[1:len(command)])
+            lead = lead[0:begin_bracket] + \
+                "{}".format(roll_dice(command[1:])) + \
                 lead[end_bracket + 1:len(lead)]
         # Otherwise just insert the result of rolling on the given table
         else:
